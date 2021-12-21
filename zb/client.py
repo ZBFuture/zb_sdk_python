@@ -99,10 +99,11 @@ class ApiClient(object):
 
             if self.verbose:
                 print('method:', method, ', url:', url, ", response:", response.text)
-
-            self.handle_fail(response, method, url)
+            else:
+                self.handle_fail(response, method, url)
 
             return response.json()['data']
+
         except Timeout as e:
             self.raise_error(RequestTimeout, method, url, e)
         except ValueError as e:
