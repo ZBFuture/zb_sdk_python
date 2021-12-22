@@ -10,7 +10,7 @@ from zb.utils import Utils
 
 class TestClient(TestCase):
     client = zb.ApiClient()
-    client.urls['api'] = 'https://www.zbgpro.net'
+    client.urls['api'] = 'https://www.zbg.bet'
 
     api_key = "8da1a454-2f07-48e7-b268-72582fb72794"
 
