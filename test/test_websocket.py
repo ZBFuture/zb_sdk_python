@@ -7,7 +7,7 @@ from zb.model.subscribe_envet import *
 
 
 class TestSubscriptionClient(TestCase):
-    api = zb.MarketClient(url='ws://ttfutures.zb.com/ws/public/v1',
+    api = zb.MarketClient(url='ws://fapi.zb.com/ws/public/v1',
                           connection_delay_failure=5)
 
     def test_whole_depth_event(self):

@@ -9,7 +9,7 @@ class TestTradeApi(TestCase):
     symbol = 'ETH_USDT'
     api = zb.TradeApi(api_key='8da1a454-2f07-48e7-b268-72582fb72794',
                         secret_key='d67355ca-3e20-41fc-8e14-bfdf506f72fc',
-                        api_host='http://ttfutures.zb.com')
+                        api_host='http://fapi.zb.com')
 
     def test_buy(self):
         param = [OrderRequest(self.symbol, 1, 1, 10, 1000, 1, None),]
