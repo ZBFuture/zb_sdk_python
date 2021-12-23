@@ -6,19 +6,19 @@ from zb.model.trade import OrderRequest
 
 
 class TestTradeApi(TestCase):
-    symbol = 'ETH_USDT'
-    api = zb.TradeApi(api_key='8da1a454-2f07-48e7-b268-72582fb72794',
-                        secret_key='d67355ca-3e20-41fc-8e14-bfdf506f72fc',
-                        api_host='http://fapi.zb.com')
+    symbol = 'FIL_USDT'
+    api = zb.TradeApi(api_key='9807581e-992e-41ca-8fa4-639fbf1c939f',
+                        secret_key='a7a15b46-eb08-431e-81e4-096bd12e2a48',
+                        api_host='https://fapi.zb.com')
 
-    def test_buy(self):
-        param = [OrderRequest(self.symbol, 1, 1, 10, 1000, 1, None),]
-        param_ = [a.__dict__ for a in param]
-        json_str = json.dumps(param_)
-        print(json_str)
+    # def test_buy(self):
+    #     param = [OrderRequest(self.symbol, 1, 1, 10, 1000, 1)]
+    #     param_ = [a.__dict__ for a in param]
+    #     json_str = json.dumps(param_)
+    #     print(json_str)
 
     def test_order(self):
-        request = self.api.order(self.symbol, Action.LIMIT, OrderSide.SIDE_OPEN_LONG, 1000, 1,1)
+        request = self.api.order(self.symbol, OrderSide.SIDE_OPEN_LONG, 1, 35, Action.LIMIT, 1)
         print(request)
 
     def test_cancel_order(self):
