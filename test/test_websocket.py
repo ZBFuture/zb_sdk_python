@@ -127,9 +127,9 @@ class TestSubscriptionClient(TestCase):
 
 
 class TestWsAccountClient(TestCase):
-    api = zb.WsAccountClient(api_key='8da1a454-2f07-48e7-b268-72582fb72794',
-                             secret_key='d67355ca-3e20-41fc-8e14-bfdf506f72fc',
-                             url='ws://ttfutures.zb.com/ws/private/api/v2', )
+    api = zb.WsAccountClient(api_key='9807581e-992e-41ca-8fa4-639fbf1c939f',
+                        secret_key='a7a15b46-eb08-431e-81e4-096bd12e2a48',
+                             url='wss://fapi.zb.com/ws/private/api/v2', )
 
     def test_login(self):
         def callback(event: DepthEvent):
