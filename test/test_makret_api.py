@@ -6,7 +6,7 @@ from zb.model import Interval
 
 class TestMarketApi(TestCase):
     symbol = 'eth_usdt'
-    market_api = zb.MarketApi(api_host='http://ttfutures.zb.com')
+    market_api = zb.MarketApi(api_host='https://fapi.zb.com')
 
     def test_get_market_list(self):
         request = self.market_api.get_market_list()
