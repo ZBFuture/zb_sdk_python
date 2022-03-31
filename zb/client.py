@@ -35,8 +35,8 @@ class ApiClient(object):
     currencies_by_name = None
 
     urls = {
-        'logo': 'https://www.zb.land/src/images/logo.png',
-        'api': 'https://www.zb.work',
+        'logo': 'https://www.zb.com/src/images/logo.png',
+        'api': 'https://fapi.zb.com',
         'doc': 'https://zbgapi.github.io/docs/spot/v1/cn/#185368440e',
     }
     apis = {
