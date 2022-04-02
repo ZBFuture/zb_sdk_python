@@ -57,6 +57,7 @@ class OrderSide(Enum):
     SIDE_CLOSE_LONG = 3
     SIDE_CLOSE_SHORT = 4
 
+    # 单向持仓
     # 5 买入
     # 6 卖出
     # 0 仅平仓
