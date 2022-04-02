@@ -52,15 +52,17 @@ class OrderSide(Enum):
     # 2开空（卖出），
     # 3平多（卖出），
     # 4平空（买入）
-    #
-    # 单向持仓
-    # 5 买入
-    # 6 卖出
-    # 0 仅平仓
     SIDE_OPEN_LONG = 1
     SIDE_OPEN_SHORT = 2
     SIDE_CLOSE_LONG = 3
     SIDE_CLOSE_SHORT = 4
+
+    # 5 买入
+    # 6 卖出
+    # 0 仅平仓
+    SIDE_ONE_WAY_BUY = 5
+    SIDE_ONE_WAY_SELL = 6
+    SIDE_ONE_WAY_ONLY_CLOSE = 0
 
 
 
