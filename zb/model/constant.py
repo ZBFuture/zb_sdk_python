@@ -47,11 +47,21 @@ class Interval(Enum):
 
 
 class OrderSide(Enum):
-    # 1开多（买入），2开空（卖出），3平多（卖出），4平空（买入）
+    # 双向持仓
+    # 1开多（买入），
+    # 2开空（卖出），
+    # 3平多（卖出），
+    # 4平空（买入）
+    #
+    # 单向持仓
+    # 5 买入
+    # 6 卖出
+    # 0 仅平仓
     SIDE_OPEN_LONG = 1
     SIDE_OPEN_SHORT = 2
     SIDE_CLOSE_LONG = 3
     SIDE_CLOSE_SHORT = 4
+
 
 
 class OrderState(Enum):
