@@ -28,11 +28,8 @@ class ApiClient(object):
     lan = 'cn'  # cn, en, kr
 
     markets = None
-    currencies = None
     markets_by_id = None
     markets_by_name = None
-    currencies_by_id = None
-    currencies_by_name = None
 
     urls = {
         'logo': 'https://www.zb.com/src/images/logo.png',
@@ -42,9 +39,7 @@ class ApiClient(object):
     apis = {
         'public': {
             'get': {
-                'currencies': '/exchange/api/v1/common/currencys',
                 'symbols': '/Server/api/v2/config/marketList',
-                'assist_price': '/exchange/api/v1/common/assist-price'
             },
         },
     }
@@ -78,13 +73,20 @@ class ApiClient(object):
 
         self.last_rest_request_Timestamp = Utils.milliseconds()
 
+        from zb.model.constant import FuturesAccountType
+        futures_account_type = Utils.safe_integer(params, "futuresAccountType")
+        symbol = Utils.safe_string(params, "symbol")
+        if futures_account_type == FuturesAccountType.BASE_QC.value:
+            path = "/qc" + path
+        elif symbol is not None and symbol.upper().endswith("QC"):
+            path = "/qc" + path
+
         if api == 'private':
             headers = self.sign(path, method, params, headers)
 
         # 设置路径参数
         path = path.format(**params)
-        api = self.urls['market_api'] if path.find('api/data/v1') >= 0 else self.urls['api']
-        url = api + path
+        url = self.urls['api'] + path
 
         response = None
         try:
@@ -177,10 +179,6 @@ class ApiClient(object):
             self.markets_by_id = Utils.index_by(self.markets, "id")
             self.markets_by_name = Utils.index_by(self.markets, "marketName")
 
-            self.currencies = self.get_currencies()
-            self.currencies_by_id = Utils.index_by(self.currencies, "id")
-            self.currencies_by_name = Utils.index_by(self.currencies, "name")
-
         return self.markets
 
     def get_symbols(self) -> SymbolList:
@@ -188,37 +186,16 @@ class ApiClient(object):
 
         return [Symbol(**item) for item in data_array]
 
-    CurrencyList = List[Currency]
-
-    def get_currencies(self) -> CurrencyList:
-        data_array = self.public_get_currencies()
-        currencies = list()
-        for item in data_array:
-            currencies.append(Currency(**item))
-        return currencies
-
-    def get_assist_price(self, *currencies: str) -> AssistPrice:
-        request = {}
-        if currencies:
-            request['currencys'] = ",".join(currencies)
-        data = self.public_get_assist_price(request)
-
-        return AssistPrice(**data)
-
     def check_symbol(self, symbol: str):
         if symbol is None:
             raise ArgumentsRequired("[Input] symbol should not be null")
 
         self.load_markets()
+        symbol = symbol.upper()
         if symbol not in self.markets_by_name:
             raise NotSupported("'" + symbol + "' is not yet supported by the zb.")
 
         return self.markets_by_name[symbol]
-
-    def check_currency(self, currency: str):
-        self.load_markets()
-        if currency not in self.currencies_by_name:
-            raise NotSupported("'" + currency + "' is not yet supported by the zb.")
 
     def safe_get_symbol(self, symbol_id):
         if symbol_id is None:

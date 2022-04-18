@@ -27,7 +27,7 @@ class SubscriptionClient(object):
         Create the subscription client to subscribe the update from server.
 
         :param kwargs: The option of subscription connection.
-            uri: Set the URI for subscription.
+            url: Set the URI for subscription.
             is_auto_connect: When the connection lost is happening on the subscription line, specify whether the client
                             reconnect to server automatically. The connection lost means:
                                 Caused by network problem
@@ -47,7 +47,7 @@ class SubscriptionClient(object):
 
         self.connections = list()
 
-        self.url = 'wss://futures.zb.land/ws/public/v1'
+        self.url = 'wss://fapi.zb.com/ws/public/v1'
         self.is_auto_connect = True
         self.receive_limit_ms = 60000
         self.connection_delay_failure = 15
@@ -70,6 +70,9 @@ class SubscriptionClient(object):
             }
             if kwargs:
                 param.update(kwargs)
+                if "login" == channel:
+                    del param["futuresAccountType"]
+
             message = json.dumps(param)
             print('subscribe message:', message)
             conn.send(message)
@@ -81,7 +84,16 @@ class SubscriptionClient(object):
         request.update_callback = callback
         request.error_handler = error_handler
 
-        connection = WebsocketConnection(self._api_key, self._secret_key, self.url, self._watch_dog, request)
+        futures_account_type = Utils.safe_integer(kwargs, "futuresAccountType")
+        url = self.url
+        if futures_account_type == 2 and "/qc" not in url:
+            i = self.url.find('/ws')
+            url = self.url[0:i] + "/qc" + self.url[i:]
+        elif (futures_account_type == 1 or futures_account_type is None) and "/qc" in url:
+            url = self.url.replace("/qc", "")
+
+        print("url >>> " + url)
+        connection = WebsocketConnection(self._api_key, self._secret_key, url, self._watch_dog, request)
         self.connections.append(connection)
         connection.connect()
 
@@ -106,7 +118,7 @@ class MarketClient(SubscriptionClient):
         Create the subscription client to subscribe the update from server.
 
         :param kwargs: The option of subscription connection.
-            uri: Set the URI for subscription.
+            url: Set the URI for subscription.
             is_auto_connect: When the connection lost is happening on the subscription line, specify whether the client
                             reconnect to server automatically. The connection lost means:
                                 Caused by network problem
@@ -116,17 +128,18 @@ class MarketClient(SubscriptionClient):
                             the connection will be disconnected.
             connection_delay_failure: If auto reconnect is enabled, specify the delay time before reconnect.
         """
-        if 'uri' not in kwargs:
-            kwargs['uri'] = 'wss://futures.zb.land/ws/public/v1'
+        if 'url' not in kwargs:
+            kwargs['url'] = 'wss://fapi.zb.com/ws/public/v1'
         super().__init__(**kwargs)
 
     def _subscribe_event(self, channel, callback, json_parser, size, error_handler):
-
+        futures_account_type = FuturesAccountType.BASE_QC if channel.find("_QC") > 0 else None
         conn = self._create_connection(channel=channel,
                                        callback=callback,
                                        json_parser=json_parser,
                                        error_handler=error_handler,
-                                       size=size)
+                                       size=size,
+                                       futuresAccountType=futures_account_type)
         return conn.id
 
     def subscribe_whole_depth_event(self, symbol: str, callback, scale=None, size=5, error_handler=None):
@@ -383,15 +396,15 @@ class WsAccountClient(SubscriptionClient):
     CH_batchCancelOrder = "Trade.batchCancelOrder"
     CH_cancelAllOrders = "trade.cancelAllOrders"
 
-    def __init__(self, api_key, secret_key, url, **kwargs):
+    def __init__(self, api_key, secret_key, url="wss://fapi.zb.com/ws/private/api/v2", **kwargs):
         self.callback_map = dict()
         self.json_parser_map = dict()
         self.error_handler_map = dict()
-        self.connection = None
+        self.connection_map = dict()
 
         super().__init__(api_key=api_key, secret_key=secret_key, url=url, **kwargs)
 
-    def login(self):
+    def login(self, futures_account_type=FuturesAccountType.BASE_USDT):
         def json_parser(json_wrapper):
             print('data message: >>>>>> ', json_wrapper)
             channel = Utils.safe_string(json_wrapper, 'channel')
@@ -421,19 +434,20 @@ class WsAccountClient(SubscriptionClient):
         from zb import ApiClient
         sign = ApiClient.generate_sign(timestamp, "GET", self.LOGIN, None, self._secret_key)
         param = {
+            'futuresAccountType': futures_account_type.value,
             'action': 'login',
             'ZB-APIKEY': self._api_key,
             'ZB-TIMESTAMP': timestamp,
             'ZB-SIGN': sign
         }
-        self.connection = self._create_connection(channel='login',
-                                                  callback=callback,
-                                                  json_parser=json_parser,
-                                                  error_handler=error_handler,
-                                                  **param)
+        self.connection_map[futures_account_type] = self._create_connection(channel='login',
+                                                                            callback=callback,
+                                                                            json_parser=json_parser,
+                                                                            error_handler=error_handler,
+                                                                            **param)
         time.sleep(2)
 
-    def subscribe(self, channel, data, callback, json_parser, error_handler):
+    def subscribe(self, channel, data, callback, json_parser, error_handler, futures_account_type=FuturesAccountType.BASE_USDT):
         param = {
             'action': self.Subscribe,
             'channel': channel,
@@ -441,20 +455,21 @@ class WsAccountClient(SubscriptionClient):
 
         if data:
             param.update(data)
-        if self.connection is None:
-            self.login()
+
+        if futures_account_type not in self.connection_map:
+            self.login(futures_account_type)
 
         print("send subscribe message >>>>", json.dumps(param))
-        self.connection.send(json.dumps(param))
         self.callback_map[channel] = callback
         if json_parser:
             self.json_parser_map[channel] = json_parser
         if error_handler:
             self.error_handler_map[channel] = error_handler
 
+        self.connection_map[futures_account_type].send(json.dumps(param))
 
     def unsubscribe(self, channel, futures_account_type=FuturesAccountType.BASE_USDT,):
-        if self.connection:
+        if futures_account_type in self.connection_map:
             param = {
                 'action': 'unsubscribe',
                 'channel': channel,
@@ -462,7 +477,7 @@ class WsAccountClient(SubscriptionClient):
             }
             message = json.dumps(param)
             print("send unsubscribe message >>>>", message)
-            self.connection.send(message)
+            self.connection_map[futures_account_type].send(message)
 
     def subscribe_fund_change(self, callback, currency=None, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -475,7 +490,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundChange, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundChange, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_balance(self, callback, currency=None, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -486,7 +501,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundBalance, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundBalance, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_account(self, callback, convert_unit='cny', futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -497,7 +512,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundGetAccount, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundGetAccount, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_bill(self, callback, currency=None, bill_type=None, start_time=None, end_time=None, page=1, size=10, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -517,7 +532,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundGetBill, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundGetBill, param, callback, json_parser, error_handler, futures_account_type)
 
     def subscribe_asset_change(self, callback, convert_unit='cny', futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -528,7 +543,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundAssetChange, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundAssetChange, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_asset_info(self, callback, convert_unit='cny', futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -540,7 +555,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_FundAssetInfo, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_FundAssetInfo, param, callback, json_parser, error_handler, futures_account_type)
 
     def subscribe_positions_change(self, callback, symbol=None, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -552,7 +567,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_PositionsChange, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_PositionsChange, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_positions(self, callback, symbol=None, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         param = {
@@ -575,7 +590,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_marginInfo, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_marginInfo, param, callback, json_parser, error_handler, futures_account_type)
 
     def update_margin(self, callback, positions_id: int, amount: float, type: int, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -598,7 +613,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_updateMargin, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_updateMargin, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_setting(self, callback, symbol: str, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -617,7 +632,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_getSetting, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_getSetting, param, callback, json_parser, error_handler, futures_account_type)
 
     def set_leverage(self, callback, symbol: str, leverage: int, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -638,7 +653,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_setLeverage, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_setLeverage, param, callback, json_parser, error_handler, futures_account_type)
 
     def set_positions_mode(self, callback, symbol: str, positions_mode: int, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -659,7 +674,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_setPositionsMode, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_setPositionsMode, param, callback, json_parser, error_handler, futures_account_type)
 
     def set_margin_mode(self, callback, symbol: str, margin_mode: int, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -680,7 +695,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_setMarginMode, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_setMarginMode, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_nominal_value(self, callback, symbol: str, side: int, futures_account_type=FuturesAccountType.BASE_USDT, error_handler=None):
         """
@@ -701,7 +716,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_getNominalValue, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_getNominalValue, param, callback, json_parser, error_handler, futures_account_type)
 
     ## 订单和交易相关
 
@@ -723,7 +738,7 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_orderChange, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_orderChange, param, callback, json_parser, error_handler, futures_account_type)
 
     def order(self, callback, symbol: str, side: OrderSide, amount: float, price: float, action=Action.LIMIT, entrust_type=1, error_handler=None):
         """
@@ -750,7 +765,8 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_order, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+        self.subscribe(self.CH_order, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_order(self, callback, symbol: str, order_id=None, client_order_id=None, error_handler=None):
         """
@@ -776,7 +792,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_getOrder, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_getOrder, param, callback, json_parser, error_handler, futures_account_type)
 
     def cancel_order(self, callback, symbol: str, order_id=None, client_order_id=None, error_handler=None):
         """
@@ -803,7 +821,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_cancelOrder, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_cancelOrder, param, callback, json_parser, error_handler, futures_account_type)
 
     def batch_cancel_order(self, callback, symbol: str, order_ids=None, client_order_ids=None, error_handler=None):
         """
@@ -830,7 +850,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_batchCancelOrder, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_batchCancelOrder, param, callback, json_parser, error_handler, futures_account_type)
 
     def cancel_all_orders(self, callback, symbol: str, error_handler=None):
         """
@@ -868,7 +890,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_getUndoneOrders, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_getUndoneOrders, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_all_orders(self, callback, symbol: str, start_time=None, end_time=None, page=1, size=10, error_handler=None):
         """
@@ -896,7 +920,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_getAllOrders, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_getAllOrders, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_trade_list(self, callback, symbol: str, order_id: int, error_handler=None):
         """
@@ -914,8 +940,9 @@ class WsAccountClient(SubscriptionClient):
 
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
 
-        self.subscribe(self.CH_getTradeList, param, callback, json_parser, error_handler)
+        self.subscribe(self.CH_getTradeList, param, callback, json_parser, error_handler, futures_account_type)
 
     def get_trade_history(self, callback, symbol: str, start_time=None, end_time=None, page=1, size=10, error_handler=None):
         """
@@ -943,7 +970,9 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_tradeHistory, param, callback, json_parser, error_handler)
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_tradeHistory, param, callback, json_parser, error_handler, futures_account_type)
 
     def batch_order(self, callback, orders: List[OrderRequest], error_handler=None):
         """
@@ -958,5 +987,8 @@ class WsAccountClient(SubscriptionClient):
         def json_parser(json_wrapper):
             return Event(**json_wrapper)
 
-        self.subscribe(self.CH_batchOrder, param, callback, json_parser, error_handler)
+        symbol = orders[0].symbol
+        futures_account_type = FuturesAccountType.BASE_QC if symbol.upper().find("_QC") > 0 else FuturesAccountType.BASE_USDT
+
+        self.subscribe(self.CH_batchOrder, param, callback, json_parser, error_handler, futures_account_type)
 

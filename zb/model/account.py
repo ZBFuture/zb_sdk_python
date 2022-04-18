@@ -93,6 +93,7 @@ class Asset(ResultModel):
         self.allUnrealizedPnl = Utils.safe_float(kwargs, "allUnrealizedPnl", 0)
         self.allMargin = Utils.safe_float(kwargs, "allMargin", 0)
 
+
 class Positions(ResultModel):
     """
     合约持仓
@@ -129,6 +130,7 @@ class Positions(ResultModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+
 class MarginInfo(ResultModel):
     """
     保证金信息查询
@@ -145,6 +147,7 @@ class MarginInfo(ResultModel):
         self.maxAdd = Utils.safe_float(kwargs, 'maxAdd')
         self.maxSub = Utils.safe_float(kwargs, 'maxSub')
         self.liquidatePrice = Utils.safe_float(kwargs, 'liquidatePrice')
+
 
 class PositionsSettingResult(ResultModel):
     """
@@ -238,6 +241,7 @@ class BillTypeResult(ResultModel):
         super().__init__(**kwargs)
 
         self.code = Utils.safe_integer(kwargs, 'code')
+
 
 class MarginHistoryResult(ResultModel):
     """

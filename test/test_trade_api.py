@@ -6,10 +6,10 @@ from zb.model.trade import OrderRequest
 
 
 class TestTradeApi(TestCase):
-    symbol = 'FIL_USDT'
+    symbol = 'ETH_QC'
     api = zb.TradeApi(api_key='9807581e-992e-41ca-8fa4-639fbf1c939f',
-                        secret_key='a7a15b46-eb08-431e-81e4-096bd12e2a48',
-                        api_host='https://fapi.zb.com')
+                      secret_key='a7a15b46-eb08-431e-81e4-096bd12e2a48',
+                      api_host='https://fapi.zb.com')
 
     # def test_buy(self):
     #     param = [OrderRequest(self.symbol, 1, 1, 10, 1000, 1)]

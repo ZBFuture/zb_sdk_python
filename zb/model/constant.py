@@ -3,7 +3,8 @@ from enum import Enum
 
 class FuturesAccountType(Enum):
     BASE_USDT = 1  # U本位
-    BASE_COIN = 2  # 币本位
+    BASE_QC = 2  # QC本位
+    BASE_COIN = 3  # 币本位
 
 
 class PositionsMode(Enum):
@@ -64,7 +65,6 @@ class OrderSide(Enum):
     SIDE_ONE_WAY_BUY = 5
     SIDE_ONE_WAY_SELL = 6
     SIDE_ONE_WAY_ONLY_CLOSE = 0
-
 
 
 class OrderState(Enum):

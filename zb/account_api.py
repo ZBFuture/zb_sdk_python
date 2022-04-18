@@ -40,7 +40,7 @@ class AccountApi(ApiClient):
         """
         合约账户信息
         :param convert_unit: 折合单位，页面显示上"≈"号后面的数字单位，可选：cny，usd,usdt,btc
-        :param futures_account_type: 合约类型，1:USDT合约，2:币本位合约
+        :param futures_account_type: 合约类型，1:USDT合约，2:QC本位合约，3:币本位合约
         :return: The current user information
         """
         params = {
@@ -58,7 +58,7 @@ class AccountApi(ApiClient):
         所有合约仓位/单个合约仓位(marketId+side过滤)
         :param symbol:              市场名 如 BTC_USDT
         :param side:                1 多仓  0 空仓
-        :param futures_account_type:1:USDT永续合约  2：币本位合约，默认1
+        :param futures_account_type:1:USDT永续合约，2:QC本位合约，3:币本位合约，默认1
         :return:
         """
         params = {
@@ -76,7 +76,7 @@ class AccountApi(ApiClient):
         """
         4.3 保证金信息查询（最大保证金增加数量，最大保证金提取数量，预计强平价格）
         如果没有记录不会创建一条空记录
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约 2:QC本位合约，3:币本位合约
         :param position_id:         仓位Id
         :return: MarginInfo
         """
@@ -93,7 +93,7 @@ class AccountApi(ApiClient):
         4.5 仓位杠杆设置
         :param symbol:              市场名称，如 BTC_USDT
         :param leverage:            杠杆倍数
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: PositionsSettingResult
         """
         params = {
@@ -131,7 +131,7 @@ class AccountApi(ApiClient):
 
         :param symbol:              市场名称，如 BTC_USDT
         :param margin_mode:         杠杆倍数
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: SetLeverageResult
         """
         params = {
@@ -150,7 +150,7 @@ class AccountApi(ApiClient):
 
         :param symbol:              市场名称，如 BTC_USDT
         :param side:                方向：1：开多   0 开空
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: NominalValueResult
         """
 
@@ -175,7 +175,7 @@ class AccountApi(ApiClient):
         :param bill_type:           账单类型 int
         :param start_time:          开始时间戳
         :param end_time:            结束时间戳
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :param page:                页码
         :param size:                每页行数，默认10
         :return: BillResultList
@@ -244,7 +244,7 @@ class AccountApi(ApiClient):
         4.12 仓位配置信息查询
 
         :param symbol:               市场id
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: PositionsSettingResult
         """
 
@@ -262,7 +262,7 @@ class AccountApi(ApiClient):
         4.13 通过userid，currencyId查询资金
 
         :param currency_name:        币种名，如：BTC
-        :param futures_account_type: 1:USDT永续合约  2：币本位合约
+        :param futures_account_type: 1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: List[BalanceResult]
         """
 
@@ -281,7 +281,7 @@ class AccountApi(ApiClient):
 
         :param position_id:                 仓位ID int
         :param max_additional_usd_value:    设置增加的保证金数量，如果为0会关闭自动增加保证金
-        :param futures_account_type:        1:USDT永续合约  2：币本位合约
+        :param futures_account_type:        1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: str 本次操作的clientId，由秒时间戳+仓位ID 组成
         """
 
@@ -302,7 +302,7 @@ class AccountApi(ApiClient):
 
         :param symbol:              市场名，如：btc_usdt
         :param margin_coins:        设置保证金顺序, 如：eth,usdt,qc
-        :param futures_account_type:1:USDT永续合约  2：币本位合约
+        :param futures_account_type:1:USDT永续合约  2:QC本位合约，3:币本位合约
         :return: str 本次操作的clientId，由秒时间戳+仓位ID 组成
         """
 

@@ -1,6 +1,6 @@
 from unittest import TestCase
 import zb
-from zb.model.constant import TransferType, WithdrawState, Direct, PositionsMode, MarginMode
+from zb.model.constant import TransferType, WithdrawState, Direct, PositionsMode, MarginMode, FuturesAccountType
 
 
 class TestAccountApi(TestCase):
@@ -18,10 +18,12 @@ class TestAccountApi(TestCase):
         print(request.account)
         print(request.assets)
 
+        request = self.api.get_account(futures_account_type=FuturesAccountType.BASE_QC)
+        self.assertIsNotNone(request)
+
     def test_get_positions(self):
         request = self.api.get_positions('eth_usdt')
         print(request)
-
 
     def test_get_margin_info(self):
         request = self.api.get_margin_info(position_id=6833656775477045248)

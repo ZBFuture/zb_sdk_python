@@ -1,11 +1,10 @@
 import gzip
 import json
+import logging
 import ssl
 import threading
-import time
 
 import websocket
-import logging
 
 # Key: ws, Value: connection
 from zb.errors import *
@@ -43,6 +42,7 @@ connection_id = 0
 
 def websocket_func(*args):
     connection_instance = args[0]
+    # `pip3 install websocket-client` 如果报错提示：module 'websocket' has no attribute 'WebSocketApp'
     connection_instance.ws = websocket.WebSocketApp(connection_instance.url,
                                                     on_message=on_message,
                                                     on_error=on_error,

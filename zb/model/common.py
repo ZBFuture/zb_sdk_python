@@ -26,7 +26,7 @@ class ResultModel(dict):
 
 class Symbol(ResultModel):
     """
-    The ZBG supported symbols.
+    The ZB supported symbols.
 
     :member
         | 名称                 | 类型       | 示例 | 描述                                                         |

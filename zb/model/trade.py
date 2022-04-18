@@ -1,7 +1,6 @@
 from zb.model.common import ResultModel
 from zb.model.constant import Action
 from zb.utils import Utils
-from json import dumps
 
 
 class OrderRequest(dict):
@@ -14,7 +13,6 @@ class OrderRequest(dict):
         self.price = Utils.safe_float(kwargs, 'price', None)
         self.amount = Utils.safe_float(kwargs, 'amount')
         self.entrustType = Utils.safe_integer(kwargs, 'entrustType', 1)
-
 
 
 class BatchOrderResult(ResultModel):
@@ -114,6 +112,7 @@ class Order(ResultModel):
         self.margin = Utils.safe_float(kwargs, 'margin')
         self.createTime = Utils.safe_integer(kwargs, 'createTime')
 
+
 class Trade(ResultModel):
     """
     Trade data
@@ -145,6 +144,7 @@ class Trade(ResultModel):
         self.side = Utils.safe_integer(kwargs, 'side')
         self.createTime = Utils.safe_integer(kwargs, 'createTime')
 
+
 class OrderAlgos(ResultModel):
     """
     Trade data
@@ -160,7 +160,7 @@ class OrderAlgos(ResultModel):
         | side         | 是   | Integer | `1`:开多(计划委托) `2`:开空(计划委托) `3`:平多(止盈止损) `4`:平空(止盈止损) |
         | orderType    | 是   | Integer | `1`：计划委托 `2`：止盈止损                              |
         | priceType    | 是   | Integer | `1`:标记价格 `2`:最新价格                                |
-        | algoPrice    | 是   | Decimal | 委托价格，填写值0\<X\<=1000000                               |
+        | algoPrice    | 是   | Decimal | 委托价格，填写值0<X<=1000000                               |
         | bizType      | 是   | Integer | `1`:止盈 `2`:止损                                        |
         | leverage     | 是   | Integer | 杠杠倍数                                                     |
         | sourceType   | 是   | Integer | 来源： 1:WEB 2:Android 3:iOS 4:Rest API 5:WebSocket API 6:System 7:Plan Entrust(计划委托) 8:Take Profit(止盈止损) 9:Take Profit(止损) |
